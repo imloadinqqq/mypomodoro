@@ -52,6 +52,7 @@ class SecondWindow(QMainWindow):
         container = QWidget()
         layout.addWidget(list_widget)
         container.setLayout(layout)
+        container.setFixedSize(400, 200)
         self.setCentralWidget(container)
 
 
@@ -67,7 +68,7 @@ class MainWindow(QMainWindow):
         # widgets
         self.timer_display = QLabel()
         self.font = QFont()
-        self.font.setPointSize(24)
+        self.font.setPointSize(64)
         self.timer_display.setFont(self.font)
 
         # buttons

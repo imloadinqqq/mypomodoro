@@ -1,0 +1,16 @@
+QPushButton {
+	color: white;
+	background-color: #BC4141;
+}
+
+QMainWindow {
+	background-color: #C35454;
+}
+
+QLineEdit {
+	background-color: #A85353;
+}
+
+QListWidget {
+	background-color: #BC4141;
+}
