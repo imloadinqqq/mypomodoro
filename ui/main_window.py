@@ -1,8 +1,9 @@
-from PyQt6.QtCore import QTime, QTimer, Qt
+from PyQt6.QtCore import QTime, QTimer, Qt, QUrl
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QBoxLayout,
     QVBoxLayout,
+    QHBoxLayout,
     QListWidget,
     QLabel,
     QMainWindow,
@@ -10,6 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget,
     QLineEdit
 )
+from PyQt6.QtMultimedia import QSoundEffect
 import logging
 import sqlite3
 from datetime import datetime, timedelta
@@ -63,12 +65,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Pomodororororo")
         self.start_time = None
         self.task = QLineEdit()
+        self.task.setFixedWidth(200)
         self.history = list()
 
         # widgets
         self.timer_display = QLabel()
         self.font = QFont()
-        self.font.setPointSize(64)
+        self.font.setPointSize(72)
         self.timer_display.setFont(self.font)
 
         # buttons
@@ -90,10 +93,8 @@ class MainWindow(QMainWindow):
         self.show_history_button = QPushButton("Show History")
         self.show_history_button.clicked.connect(self.show_history)
 
-        # layout
+        # layouts
         layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
-        layout.addWidget(QLabel("Task Name:"))
-        layout.addWidget(self.task)
         layout.addWidget(self.timer_display,
                          alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.start_button)
@@ -102,6 +103,12 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.new_session_button)
         layout.addWidget(self.skip_break_button)
         layout.addWidget(self.show_history_button)
+
+        task_layout = QHBoxLayout()
+        task_layout.addWidget(QLabel("Task Name:"))
+        task_layout.addWidget(self.task)
+
+        layout.addLayout(task_layout)
 
         container = QWidget()
         container.setLayout(layout)
