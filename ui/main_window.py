@@ -2,13 +2,17 @@ from PyQt6.QtCore import QTime, QTimer, Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QBoxLayout,
+    QVBoxLayout,
+    QListWidget,
     QLabel,
     QMainWindow,
     QPushButton,
-    QWidget
+    QWidget,
+    QLineEdit
 )
 import logging
 import sqlite3
+from datetime import datetime, timedelta
 
 logging.basicConfig(
     filename='app.log',
@@ -32,9 +36,23 @@ conn.commit()
 
 
 def save_to_db(task, date, time, duration):
-    c.execute("INSERT INTO history (task, date, time, duration) VALUES, (?, ?, ?, ?)",
+    c.execute("INSERT INTO history (task, date, time, duration) VALUES (?, ?, ?, ?)",
               (task, date, time, duration))
     conn.commit()
+
+
+class SecondWindow(QMainWindow):
+    def __init__(self, history_rows, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("History")
+        layout = QVBoxLayout()
+        list_widget = QListWidget()
+        for row in history_rows:
+            list_widget.addItem(f"{row[1]} | {row[2]} | {row[3]} | {row[4]}")
+        container = QWidget()
+        layout.addWidget(list_widget)
+        container.setLayout(layout)
+        self.setCentralWidget(container)
 
 
 class MainWindow(QMainWindow):
@@ -42,6 +60,9 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Pomodororororo")
+        self.start_time = None
+        self.task = QLineEdit()
+        self.history = list()
 
         # widgets
         self.timer_display = QLabel()
@@ -65,8 +86,13 @@ class MainWindow(QMainWindow):
         self.skip_break_button = QPushButton("Skip")
         self.skip_break_button.clicked.connect(self.skip_break)
 
+        self.show_history_button = QPushButton("Show History")
+        self.show_history_button.clicked.connect(self.show_history)
+
         # layout
         layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        layout.addWidget(QLabel("Task Name:"))
+        layout.addWidget(self.task)
         layout.addWidget(self.timer_display,
                          alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.start_button)
@@ -74,6 +100,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.break_button)
         layout.addWidget(self.new_session_button)
         layout.addWidget(self.skip_break_button)
+        layout.addWidget(self.show_history_button)
 
         container = QWidget()
         container.setLayout(layout)
@@ -91,6 +118,7 @@ class MainWindow(QMainWindow):
 
     def start_timer(self):
         if not self.timer.isActive():
+            self.start_time = datetime.now()
             self.timer.start()
             self.hide_elements()
 
@@ -123,6 +151,19 @@ class MainWindow(QMainWindow):
             self.timer.stop()
             self.timer_display.setText("Time's up!")
             logging.info("Task complete")
+
+            end_time = datetime.now()
+            duration = end_time - \
+                self.start_time if self.start_time else timedelta(minutes=25)
+
+            task_name = self.task.text() or "Unnamed Task"
+            save_to_db(
+                task_name,
+                end_time.strftime('%Y-%m-%d'),
+                end_time.strftime('%H:%M:%S'),
+                str(duration)
+            )
+
             self.start_button.hide()
             self.pause_button.hide()
             self.break_button.show()
@@ -145,3 +186,11 @@ class MainWindow(QMainWindow):
             self.timer.stop()
         logging.info("Break skipped")
         self.reset_ui()
+
+    def show_history(self):
+        c.execute(
+            "SELECT * FROM history ORDER BY id DESC"
+        )
+        rows = c.fetchall()
+        second = SecondWindow(rows, self)
+        second.show()
