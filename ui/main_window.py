@@ -47,15 +47,31 @@ class SecondWindow(QMainWindow):
     def __init__(self, history_rows, parent=None):
         super().__init__(parent)
         self.setWindowTitle("History")
-        layout = QVBoxLayout()
-        list_widget = QListWidget()
+
+        self.delete_history_button = QPushButton("Erase All History")
+        self.delete_history_button.clicked.connect(self.delete_history)
+
+        # TODO, select row to delete
+        # reference clippy
+
+        self.layout = QVBoxLayout()
+        self.list_widget = QListWidget()
         for row in history_rows:
-            list_widget.addItem(f"{row[1]} | {row[2]} | {row[3]} | {row[4]}")
+            self.list_widget.addItem(
+                f"{row[1]} | {row[2]} | {row[3]} | {row[4]}")
         container = QWidget()
-        layout.addWidget(list_widget)
-        container.setLayout(layout)
+        self.layout.addWidget(self.list_widget)
+        self.layout.addWidget(self.delete_history_button)
+        container.setLayout(self.layout)
         container.setFixedSize(400, 200)
         self.setCentralWidget(container)
+
+    def delete_history(self):
+        c.execute(
+            "DELETE FROM history"
+        )
+        conn.commit()
+        self.list_widget.clear()
 
 
 class MainWindow(QMainWindow):
@@ -202,3 +218,8 @@ class MainWindow(QMainWindow):
         rows = c.fetchall()
         second = SecondWindow(rows, self)
         second.show()
+
+    # TODO, submit button for task, make QLineEdit immutable
+    # Issue opened
+    def submit_task_name(self):
+        pass
