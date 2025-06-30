@@ -9,7 +9,8 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QWidget,
-    QLineEdit
+    QLineEdit,
+    QMessageBox
 )
 from PyQt6.QtMultimedia import QSoundEffect
 import logging
@@ -68,11 +69,23 @@ class SecondWindow(QMainWindow):
         self.setCentralWidget(container)
 
     def delete_history(self):
-        c.execute(
-            "DELETE FROM history"
-        )
-        conn.commit()
-        self.list_widget.clear()
+        msgBox = QMessageBox()
+        msgBox.setText("You are about to delete all history!")
+        msgBox.setInformativeText("Do you want to wipe your history?")
+        msgBox.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msgBox.setDefaultButton(QMessageBox.StandardButton.Yes)
+        ret = msgBox.exec()
+        if ret == QMessageBox.StandardButton.Yes:
+            try:
+                c.execute("DELETE FROM history")
+                conn.commit()
+                self.list_widget.clear()
+                logging.info("All history deleted.")
+            except Exception as e:
+                logging.error(f"Failed to delete history: {e}")
+                QMessageBox.critical(
+                    self, "Error", "Could not delete history.")
 
     def delete_selection(self):
         selected_item = self.list_widget.selectedItems()
@@ -107,6 +120,7 @@ class MainWindow(QMainWindow):
         self.history = list()
 
         # widgets
+        self.task_display = QLabel()
         self.timer_display = QLabel()
         self.font = QFont()
         self.font.setPointSize(72)
@@ -131,12 +145,21 @@ class MainWindow(QMainWindow):
         self.show_history_button = QPushButton("Show History")
         self.show_history_button.clicked.connect(self.show_history)
 
+        self.submit_task_button = QPushButton("Submit")
+        self.submit_task_button.clicked.connect(self.submit_task_name)
+
+        self.reset_timer_button = QPushButton("Reset Timer")
+        self.reset_timer_button.clicked.connect(self.reset_timer)
+
         # layouts
         layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        layout.addWidget(self.task_display,
+                         alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self.timer_display,
                          alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.start_button)
         layout.addWidget(self.pause_button)
+        layout.addWidget(self.reset_timer_button)
         layout.addWidget(self.break_button)
         layout.addWidget(self.new_session_button)
         layout.addWidget(self.skip_break_button)
@@ -145,12 +168,13 @@ class MainWindow(QMainWindow):
         task_layout = QHBoxLayout()
         task_layout.addWidget(QLabel("Task Name:"))
         task_layout.addWidget(self.task)
+        task_layout.addWidget(self.submit_task_button)
 
         layout.addLayout(task_layout)
 
         container = QWidget()
         container.setLayout(layout)
-        container.setFixedSize(500, 200)
+        container.setFixedSize(600, 250)
         self.setCentralWidget(container)
 
         # init timer
@@ -164,12 +188,14 @@ class MainWindow(QMainWindow):
 
     def start_timer(self):
         if not self.timer.isActive():
+            self.task.setDisabled(True)
             self.start_time = datetime.now()
             self.timer.start()
             self.hide_elements()
 
     def pause_timer(self):
         if self.timer.isActive():
+            self.task.setEnabled(True)
             self.timer.stop()
             self.hide_elements()
 
@@ -177,9 +203,13 @@ class MainWindow(QMainWindow):
         self.timer_display.setText("25:00")
         self.start_button.show()
         self.pause_button.hide()
+        self.reset_timer_button.show()
         self.new_session_button.hide()
         self.break_button.hide()
         self.skip_break_button.hide()
+        self.show_history_button.show()
+
+        self.task.setEnabled(True)
 
         self.time = QTime(0, 25, 0)
 
@@ -188,9 +218,11 @@ class MainWindow(QMainWindow):
         if self.timer.isActive():
             self.start_button.hide()
             self.pause_button.show()
+            self.show_history_button.hide()
         else:
             self.pause_button.hide()
             self.start_button.show()
+            self.show_history_button.show()
 
     def update_display(self):
         if self.time == QTime(0, 0, 0):
@@ -241,7 +273,12 @@ class MainWindow(QMainWindow):
         second = SecondWindow(rows, self)
         second.show()
 
-    # TODO, submit button for task, make QLineEdit immutable
-    # Issue opened
     def submit_task_name(self):
-        pass
+        text = self.task.text()
+        self.task_display.setText(f"Current Task: {text}")
+
+    def reset_timer(self):
+        if self.time != QTime(0, 25, 0):
+            self.timer.stop()
+            self.reset_ui()
+            logging.info("Time Reset")
