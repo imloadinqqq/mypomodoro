@@ -51,8 +51,8 @@ class SecondWindow(QMainWindow):
         self.delete_history_button = QPushButton("Erase All History")
         self.delete_history_button.clicked.connect(self.delete_history)
 
-        # TODO, select row to delete
-        # reference clippy
+        self.delete_selection_button = QPushButton("Delete Selected")
+        self.delete_selection_button.clicked.connect(self.delete_selection)
 
         self.layout = QVBoxLayout()
         self.list_widget = QListWidget()
@@ -62,6 +62,7 @@ class SecondWindow(QMainWindow):
         container = QWidget()
         self.layout.addWidget(self.list_widget)
         self.layout.addWidget(self.delete_history_button)
+        self.layout.addWidget(self.delete_selection_button)
         container.setLayout(self.layout)
         container.setFixedSize(400, 200)
         self.setCentralWidget(container)
@@ -72,6 +73,27 @@ class SecondWindow(QMainWindow):
         )
         conn.commit()
         self.list_widget.clear()
+
+    def delete_selection(self):
+        selected_item = self.list_widget.selectedItems()
+
+        if not selected_item:
+            return
+
+        for item in selected_item:
+            text = item.text()
+            text_sep = text.split(" | ")
+
+        task, date, time, duration = text_sep
+
+        c.execute("""
+            DELETE FROM history
+            WHERE task = ? AND date = ? AND time = ? AND duration = ?
+        """, (task, date, time, duration))
+
+        conn.commit()
+
+        self.list_widget.takeItem(self.list_widget.row(item))
 
 
 class MainWindow(QMainWindow):
