@@ -233,7 +233,7 @@ class MainWindow(QMainWindow):
 
         self.task.setEnabled(True)
 
-        self.time = QTime(0, 0, 2)
+        self.time = QTime(0, 25, 0)
 
     # avoid unnecessary UI components
     def hide_elements(self):
