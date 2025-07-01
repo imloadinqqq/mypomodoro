@@ -10,7 +10,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QWidget,
     QLineEdit,
-    QMessageBox
+    QMessageBox,
+    QInputDialog
 )
 from PyQt6.QtMultimedia import QSoundEffect
 import logging
@@ -32,15 +33,16 @@ c.execute("""
         task TEXT NOT NULL,
         date DATE NOT NULL,
         time TIME NOT NULL,
-        duration TIME NOT NULL
+        duration TIME NOT NULL,
+        reflection TEXT
     )
 """)
 conn.commit()
 
 
-def save_to_db(task, date, time, duration):
-    c.execute("INSERT INTO history (task, date, time, duration) VALUES (?, ?, ?, ?)",
-              (task, date, time, duration))
+def save_to_db(task, date, time, duration, reflection):
+    c.execute("INSERT INTO history (task, date, time, duration, reflection) VALUES (?, ?, ?, ?, ?)",
+              (task, date, time, duration, reflection))
     conn.commit()
 
 
@@ -59,7 +61,7 @@ class SecondWindow(QMainWindow):
         self.list_widget = QListWidget()
         for row in history_rows:
             self.list_widget.addItem(
-                f"{row[1]} | {row[2]} | {row[3]} | {row[4]}")
+                f"{row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]}")
         container = QWidget()
         self.layout.addWidget(self.list_widget)
         self.layout.addWidget(self.delete_history_button)
@@ -97,12 +99,12 @@ class SecondWindow(QMainWindow):
             text = item.text()
             text_sep = text.split(" | ")
 
-        task, date, time, duration = text_sep
+        task, date, time, duration, reflection = text_sep
 
         c.execute("""
             DELETE FROM history
-            WHERE task = ? AND date = ? AND time = ? AND duration = ?
-        """, (task, date, time, duration))
+            WHERE task = ? AND date = ? AND time = ? AND duration = ? AND reflection = ?
+        """, (task, date, time, duration, reflection))
 
         conn.commit()
 
@@ -187,11 +189,12 @@ class MainWindow(QMainWindow):
     # start QTimer responsible for updating display
 
     def start_timer(self):
-        if not self.timer.isActive():
-            self.task.setDisabled(True)
-            self.start_time = datetime.now()
-            self.timer.start()
-            self.hide_elements()
+        if self.is_task():
+            if not self.timer.isActive():
+                self.task.setDisabled(True)
+                self.start_time = datetime.now()
+                self.timer.start()
+                self.hide_elements()
 
     def pause_timer(self):
         if self.timer.isActive():
@@ -235,11 +238,13 @@ class MainWindow(QMainWindow):
                 self.start_time if self.start_time else timedelta(minutes=25)
 
             task_name = self.task.text() or "Unnamed Task"
+            relfection = self.reflection_prompt()
             save_to_db(
                 task_name,
                 end_time.strftime('%Y-%m-%d'),
                 end_time.strftime('%H:%M:%S'),
-                str(duration)
+                str(duration),
+                relfection
             )
 
             self.start_button.hide()
@@ -282,3 +287,26 @@ class MainWindow(QMainWindow):
             self.timer.stop()
             self.reset_ui()
             logging.info("Time Reset")
+
+    def reflection_prompt(self):
+        text, ok = QInputDialog.getText(
+            self,
+            "Reflection Prompt",
+            "Write a reflection for this session."
+        )
+
+        if ok and text:
+            QMessageBox.information(
+                self, "Good session!",  "Return to main window.")
+        elif ok:
+            QMessageBox.warning(self, "Empty", "You didn't write anything.")
+
+        return text
+
+    def is_task(self):
+        print(self.task_display.text())
+        if self.task_display.text() == "Current Task: " or self.task_display.text() == "":
+            QMessageBox.warning(self, "Task is Empty",
+                                "Please enter a task before starting the timer!")
+            return False
+        return True
