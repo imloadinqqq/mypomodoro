@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QListWidget,
+    QListWidgetItem,
     QLabel,
     QMainWindow,
     QPushButton,
@@ -59,6 +60,7 @@ class SecondWindow(QMainWindow):
 
         self.layout = QVBoxLayout()
         self.list_widget = QListWidget()
+        self.list_widget.itemDoubleClicked.connect(self.view_reflection)
         for row in history_rows:
             self.list_widget.addItem(
                 f"{row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]}")
@@ -96,19 +98,36 @@ class SecondWindow(QMainWindow):
             return
 
         for item in selected_item:
-            text = item.text()
-            text_sep = text.split(" | ")
-
-        task, date, time, duration, reflection = text_sep
+            task, date, time, duration, reflection = self.split_row(item)
 
         c.execute("""
             DELETE FROM history
             WHERE task = ? AND date = ? AND time = ? AND duration = ? AND reflection = ?
         """, (task, date, time, duration, reflection))
 
+        logging.info(f"Task: {task} | {date} | {time} | {duration} deleted")
+
         conn.commit()
 
         self.list_widget.takeItem(self.list_widget.row(item))
+
+    def view_reflection(self, item: QListWidgetItem):
+        task, date, time, duration, reflection = self.split_row(item)
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Reflection")
+        if reflection != "":
+            msg.setText("Reflection for selected task:")
+            msg.setInformativeText(reflection)
+        else:
+            msg.setText("No Reflection for selected task")
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
+
+    def split_row(self, item):
+        text = item.text()
+        text_sep = text.split(" | ")
+
+        return text_sep
 
 
 class MainWindow(QMainWindow):
@@ -214,7 +233,7 @@ class MainWindow(QMainWindow):
 
         self.task.setEnabled(True)
 
-        self.time = QTime(0, 25, 0)
+        self.time = QTime(0, 0, 2)
 
     # avoid unnecessary UI components
     def hide_elements(self):
@@ -250,6 +269,7 @@ class MainWindow(QMainWindow):
             self.start_button.hide()
             self.pause_button.hide()
             self.break_button.show()
+            self.reset_timer_button.hide()
             self.new_session_button.show()
         else:
             self.time = self.time.addSecs(-1)
