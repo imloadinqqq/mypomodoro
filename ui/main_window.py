@@ -147,6 +147,11 @@ class MainWindow(QMainWindow):
         self.font.setPointSize(72)
         self.timer_display.setFont(self.font)
 
+        self.sound = QSoundEffect()
+        self.sound.setSource(QUrl.fromLocalFile("./complete.wav"))
+        self.sound.setLoopCount(1)
+        self.sound.setVolume(1.0)
+
         # buttons
         self.start_button = QPushButton("Start")
         self.start_button.clicked.connect(self.start_timer)
@@ -233,7 +238,7 @@ class MainWindow(QMainWindow):
 
         self.task.setEnabled(True)
 
-        self.time = QTime(0, 25, 0)
+        self.time = QTime(0, 0, 2)
 
     # avoid unnecessary UI components
     def hide_elements(self):
@@ -250,6 +255,7 @@ class MainWindow(QMainWindow):
         if self.time == QTime(0, 0, 0):
             self.timer.stop()
             self.timer_display.setText("Time's up!")
+            QTimer.singleShot(1000, self.play_sound)
             logging.info("Task complete")
 
             end_time = datetime.now()
@@ -330,3 +336,9 @@ class MainWindow(QMainWindow):
                                 "Please enter a task before starting the timer!")
             return False
         return True
+
+    def play_sound(self):
+        print("Loaded:", self.sound.isLoaded())
+        self.sound.play()
+        QTimer.singleShot(500, lambda: print(
+            "Playing:", self.sound.isPlaying()))
