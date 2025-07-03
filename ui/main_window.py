@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtMultimedia import QSoundEffect
 import logging
-import sqlite3
 from datetime import datetime, timedelta
+from db import save_to_db, restore_from_backup, dump_history, c, conn
 
 logging.basicConfig(
     filename='app.log',
@@ -25,26 +25,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
-
-conn = sqlite3.connect('history.db')
-c = conn.cursor()
-c.execute("""
-    CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        task TEXT NOT NULL,
-        date DATE NOT NULL,
-        time TIME NOT NULL,
-        duration TIME NOT NULL,
-        reflection TEXT
-    )
-""")
-conn.commit()
-
-
-def save_to_db(task, date, time, duration, reflection):
-    c.execute("INSERT INTO history (task, date, time, duration, reflection) VALUES (?, ?, ?, ?, ?)",
-              (task, date, time, duration, reflection))
-    conn.commit()
 
 
 class SecondWindow(QMainWindow):
@@ -58,6 +38,11 @@ class SecondWindow(QMainWindow):
         self.delete_selection_button = QPushButton("Delete Selected")
         self.delete_selection_button.clicked.connect(self.delete_selection)
 
+        self.restore_history_button = QPushButton("Restore History")
+        self.restore_history_button.clicked.connect(
+            lambda: self.reload_after_restore()
+        )
+
         self.layout = QVBoxLayout()
         self.list_widget = QListWidget()
         self.list_widget.itemDoubleClicked.connect(self.view_reflection)
@@ -68,6 +53,7 @@ class SecondWindow(QMainWindow):
         self.layout.addWidget(self.list_widget)
         self.layout.addWidget(self.delete_history_button)
         self.layout.addWidget(self.delete_selection_button)
+        self.layout.addWidget(self.restore_history_button)
         container.setLayout(self.layout)
         container.setFixedSize(400, 200)
         self.setCentralWidget(container)
@@ -110,6 +96,17 @@ class SecondWindow(QMainWindow):
         conn.commit()
 
         self.list_widget.takeItem(self.list_widget.row(item))
+
+    def reload_after_restore(self):
+        success = restore_from_backup(self, "./history_dump.sql")
+        if success:
+            self.list_widget.clear()
+            c.execute("SELECT * FROM history ORDER BY id DESC")
+            rows = c.fetchall()
+            for row in rows:
+                self.list_widget.addItem(
+                    f"{row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]}")
+            logging.info("UI refreshed after history restore.")
 
     def view_reflection(self, item: QListWidgetItem):
         task, date, time, duration, reflection = self.split_row(item)
@@ -238,7 +235,8 @@ class MainWindow(QMainWindow):
 
         self.task.setEnabled(True)
 
-        self.time = QTime(0, 25, 0)
+        self.time = QTime(0, 0, 2)
+        self.task_display = QLabel("Task Name:")
 
     # avoid unnecessary UI components
     def hide_elements(self):
@@ -271,6 +269,8 @@ class MainWindow(QMainWindow):
                 str(duration),
                 relfection
             )
+
+            dump_history("history_dump.sql")
 
             self.start_button.hide()
             self.pause_button.hide()
