@@ -212,3 +212,4 @@ history.db
 ui/.DS_Store
 app.log
 ui/__pycache__
+history_dump.sql
