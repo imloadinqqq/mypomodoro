@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
 
         self.task.setEnabled(True)
 
-        self.time = QTime(0, 0, 2)
+        self.time = QTime(0, 25, 0)
         self.task_display = QLabel("Task Name:")
 
     # avoid unnecessary UI components
