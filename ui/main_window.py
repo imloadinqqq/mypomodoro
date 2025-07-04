@@ -232,11 +232,11 @@ class MainWindow(QMainWindow):
         self.break_button.hide()
         self.skip_break_button.hide()
         self.show_history_button.show()
+        self.task_display.clear()
 
         self.task.setEnabled(True)
 
         self.time = QTime(0, 25, 0)
-        self.task_display = QLabel("Task Name:")
 
     # avoid unnecessary UI components
     def hide_elements(self):
