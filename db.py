@@ -26,10 +26,20 @@ def save_to_db(task, date, time, duration, reflection):
     conn.commit()
 
 
-def dump_history(output_file):
-    with open(output_file, 'w') as f:
-        for line in conn.iterdump():
-            f.write(f"{line}\n")
+def dump_history(self, output_file):
+    reply = QMessageBox.question(
+        self,
+        "Confirm Dump",
+        "Do you want to dump the database history?",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+    )
+
+    if reply == QMessageBox.StandardButton.Yes:
+        with open(output_file, 'w') as f:
+            for line in conn.iterdump():
+                f.write(f"{line}\n")
+        QMessageBox.information(
+            self, "Success", "Database successfully saved!")
 
 
 def restore_from_backup(self, file):

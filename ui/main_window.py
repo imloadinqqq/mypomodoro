@@ -38,6 +38,10 @@ class SecondWindow(QMainWindow):
         self.delete_selection_button = QPushButton("Delete Selected")
         self.delete_selection_button.clicked.connect(self.delete_selection)
 
+        self.save_history_button = QPushButton("Save History")
+        self.save_history_button.clicked.connect(
+            lambda: dump_history(self, "history_dump.sql"))
+
         self.restore_history_button = QPushButton("Restore History")
         self.restore_history_button.clicked.connect(
             lambda: self.reload_after_restore()
@@ -54,6 +58,7 @@ class SecondWindow(QMainWindow):
         self.layout.addWidget(self.delete_history_button)
         self.layout.addWidget(self.delete_selection_button)
         self.layout.addWidget(self.restore_history_button)
+        self.layout.addWidget(self.save_history_button)
         container.setLayout(self.layout)
         container.setFixedSize(400, 200)
         self.setCentralWidget(container)
@@ -269,8 +274,6 @@ class MainWindow(QMainWindow):
                 str(duration),
                 relfection
             )
-
-            dump_history("history_dump.sql")
 
             self.start_button.hide()
             self.pause_button.hide()
