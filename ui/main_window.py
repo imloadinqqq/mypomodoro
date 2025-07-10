@@ -14,8 +14,9 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QInputDialog
 )
-from PyQt6.QtMultimedia import QSoundEffect
+from PyQt6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
 import logging
+import os
 from datetime import datetime, timedelta
 from db import save_to_db, restore_from_backup, dump_history, c, conn
 
@@ -30,24 +31,75 @@ logging.basicConfig(
 
 # allow user to play focus music
 class MusicWindow(QMainWindow):
-    WINDOW_WIDTH = 500
-    WINDOW_HEIGHT = 300
-
     def __init__(self):
+        WINDOW_WIDTH = 500
+        WINDOW_HEIGHT = 300
+
         super().__init__()
         self.setWindowTitle("Music")
+        self.song_files = self.get_files("./music")
         self.song_location = ""
+        self.is_song_playing = False
 
-        # Display song list from /music directory
+        self.audio_output = QAudioOutput()
+        self.music_player = QMediaPlayer()
+        self.music_player.setAudioOutput(self.audio_output)
+        self.music_player.mediaStatusChanged.connect(self.media_status_changed)
 
-    def playback_song(self, song_location):
-        # play & pause
-        pass
+        container = QWidget()
 
-    # change song_location and return
+        self.layout = QVBoxLayout()
+        self.song_list = QListWidget()
+        self.song_list.addItems(self.song_files)
+        self.song_list.itemDoubleClicked.connect(self.select_song)
+
+        self.play_button = QPushButton("Play")
+        self.play_button.clicked.connect(self.play_song)
+        self.pause_button = QPushButton("Pause")
+        self.pause_button.clicked.connect(self.pause_song)
+
+        self.layout.addWidget(self.song_list)
+        self.layout.addWidget(self.play_button)
+        self.layout.addWidget(self.pause_button)
+
+        container.setLayout(self.layout)
+        container.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setCentralWidget(container)
+
+    def get_files(self, path):
+        filenames = []
+        for entry in os.listdir(path):
+            full_path = os.path.join(path, entry)
+            root, extension = os.path.splitext(full_path)
+            if os.path.isfile(full_path) and extension == ".mp3":
+                filenames.append(entry)
+                print(entry)
+        return filenames
+
+    def play_song(self):
+        if self.song_location and not self.is_song_playing:
+            url = QUrl.fromLocalFile(self.song_location)
+            self.music_player.setSource(url)
+            self.music_player.play()
+            self.is_song_playing = True
+            print(f"Playing: {self.song_location}")
+
+    def pause_song(self):
+        if self.is_song_playing:
+            self.music_player.pause()
+            self.is_song_playing = False
+            print(f"Pausing: {self.song_location}")
+
     def select_song(self):
-        # change location logic
-        return self.song_location
+        selected_item = self.song_list.currentItem()
+        if selected_item:
+            self.song_location = os.path.join("./music", selected_item.text())
+            print(self.song_location)
+            return self.song_location
+
+    def media_status_changed(self, status):
+        if status == QMediaPlayer.MediaStatus.EndOfMedia:
+            self.is_song_playing = False
 
 
 class HistoryWindow(QMainWindow):
@@ -163,6 +215,9 @@ class MainWindow(QMainWindow):
         WINDOW_WIDTH = 600
         WINDOW_HEIGHT = 300
         super().__init__()
+
+        self.music_window = None
+        self.history_window = None
 
         self.setWindowTitle("Pomodororororo")
         self.start_time = None
@@ -336,8 +391,8 @@ class MainWindow(QMainWindow):
             "SELECT * FROM history ORDER BY id DESC"
         )
         rows = c.fetchall()
-        history_window = HistoryWindow(rows, self)
-        history_window.show()
+        self.history_window = HistoryWindow(rows, self)
+        self.history_window.show()
 
     def submit_task_name(self):
         text = self.task.text()
@@ -380,5 +435,5 @@ class MainWindow(QMainWindow):
 
     def open_player(self):
         print("Opening music player")
-        music_window = MusicWindow()
-        music_window.show()
+        self.music_window = MusicWindow()
+        self.music_window.show()
