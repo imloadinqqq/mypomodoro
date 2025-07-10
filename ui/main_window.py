@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from db import save_to_db, restore_from_backup, dump_history, c, conn
 
+
 logging.basicConfig(
     filename='app.log',
     filemode='a',
@@ -27,8 +28,33 @@ logging.basicConfig(
 )
 
 
-class SecondWindow(QMainWindow):
+# allow user to play focus music
+class MusicWindow(QMainWindow):
+    WINDOW_WIDTH = 500
+    WINDOW_HEIGHT = 300
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Music")
+        self.song_location = ""
+
+        # Display song list from /music directory
+
+    def playback_song(self, song_location):
+        # play & pause
+        pass
+
+    # change song_location and return
+    def select_song(self):
+        # change location logic
+        return self.song_location
+
+
+class HistoryWindow(QMainWindow):
     def __init__(self, history_rows, parent=None):
+        WINDOW_WIDTH = 500
+        WINDOW_HEIGHT = 300
+
         super().__init__(parent)
         self.setWindowTitle("History")
 
@@ -60,7 +86,7 @@ class SecondWindow(QMainWindow):
         self.layout.addWidget(self.restore_history_button)
         self.layout.addWidget(self.save_history_button)
         container.setLayout(self.layout)
-        container.setFixedSize(400, 200)
+        container.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setCentralWidget(container)
 
     def delete_history(self):
@@ -134,6 +160,8 @@ class SecondWindow(QMainWindow):
 
 class MainWindow(QMainWindow):
     def __init__(self):
+        WINDOW_WIDTH = 600
+        WINDOW_HEIGHT = 300
         super().__init__()
 
         self.setWindowTitle("Pomodororororo")
@@ -179,6 +207,9 @@ class MainWindow(QMainWindow):
         self.reset_timer_button = QPushButton("Reset Timer")
         self.reset_timer_button.clicked.connect(self.reset_timer)
 
+        self.open_music_player_button = QPushButton("Music Player")
+        self.open_music_player_button.clicked.connect(self.open_player)
+
         # layouts
         layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
         layout.addWidget(self.task_display,
@@ -192,6 +223,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.new_session_button)
         layout.addWidget(self.skip_break_button)
         layout.addWidget(self.show_history_button)
+        layout.addWidget(self.open_music_player_button)
 
         task_layout = QHBoxLayout()
         task_layout.addWidget(QLabel("Task Name:"))
@@ -202,7 +234,7 @@ class MainWindow(QMainWindow):
 
         container = QWidget()
         container.setLayout(layout)
-        container.setFixedSize(600, 250)
+        container.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setCentralWidget(container)
 
         # init timer
@@ -304,8 +336,8 @@ class MainWindow(QMainWindow):
             "SELECT * FROM history ORDER BY id DESC"
         )
         rows = c.fetchall()
-        second = SecondWindow(rows, self)
-        second.show()
+        history_window = HistoryWindow(rows, self)
+        history_window.show()
 
     def submit_task_name(self):
         text = self.task.text()
@@ -345,3 +377,8 @@ class MainWindow(QMainWindow):
         self.sound.play()
         QTimer.singleShot(500, lambda: print(
             "Playing:", self.sound.isPlaying()))
+
+    def open_player(self):
+        print("Opening music player")
+        music_window = MusicWindow()
+        music_window.show()
