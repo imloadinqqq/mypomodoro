@@ -1,6 +1,7 @@
 from PyQt6.QtCore import QTime, QTimer, Qt, QUrl
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
+    QLayout,
     QBoxLayout,
     QVBoxLayout,
     QHBoxLayout,
@@ -34,12 +35,17 @@ class MusicWindow(QMainWindow):
     def __init__(self):
         WINDOW_WIDTH = 500
         WINDOW_HEIGHT = 300
+        BUTTON_WIDTH = 80
 
         super().__init__()
         self.setWindowTitle("Music")
         self.song_files = self.get_files("./music")
         self.song_location = ""
         self.is_song_playing = False
+
+        # icons for media playback
+        self.pause_icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackPause)
+        self.play_icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackStart)
 
         self.audio_output = QAudioOutput()
         self.music_player = QMediaPlayer()
@@ -48,19 +54,29 @@ class MusicWindow(QMainWindow):
 
         container = QWidget()
 
+        # layouts
         self.layout = QVBoxLayout()
+        self.media_button_layout = QHBoxLayout()
+
         self.song_list = QListWidget()
         self.song_list.addItems(self.song_files)
         self.song_list.itemDoubleClicked.connect(self.select_song)
 
-        self.play_button = QPushButton("Play")
+        # buttons
+        self.play_button = QPushButton()
+        self.play_button.setIcon(self.play_icon)
+        self.play_button.setFixedWidth(BUTTON_WIDTH)
         self.play_button.clicked.connect(self.play_song)
-        self.pause_button = QPushButton("Pause")
+        self.pause_button = QPushButton()
+        self.pause_button.setIcon(self.pause_icon)
+        self.pause_button.setFixedWidth(BUTTON_WIDTH)
         self.pause_button.clicked.connect(self.pause_song)
 
+        # widgets add to layouts
         self.layout.addWidget(self.song_list)
-        self.layout.addWidget(self.play_button)
-        self.layout.addWidget(self.pause_button)
+        self.media_button_layout.addWidget(self.play_button)
+        self.media_button_layout.addWidget(self.pause_button)
+        self.layout.addLayout(self.media_button_layout)
 
         container.setLayout(self.layout)
         container.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
