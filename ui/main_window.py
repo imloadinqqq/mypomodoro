@@ -42,6 +42,8 @@ class MusicWindow(QMainWindow):
         self.song_files = self.get_files("./music")
         self.song_location = ""
         self.is_song_playing = False
+        self.song_selected_label = QLabel("")
+        self.now_playing_label = QLabel("Waiting for playback...")
 
         # icons for media playback
         self.pause_icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackPause)
@@ -76,6 +78,8 @@ class MusicWindow(QMainWindow):
         self.layout.addWidget(self.song_list)
         self.media_button_layout.addWidget(self.play_button)
         self.media_button_layout.addWidget(self.pause_button)
+        self.layout.addWidget(self.song_selected_label)
+        self.layout.addWidget(self.now_playing_label)
         self.layout.addLayout(self.media_button_layout)
 
         container.setLayout(self.layout)
@@ -98,12 +102,15 @@ class MusicWindow(QMainWindow):
             self.music_player.setSource(url)
             self.music_player.play()
             self.is_song_playing = True
+            self.now_playing_label.setText(
+                f"Now Playing: {self.song_location}")
             print(f"Playing: {self.song_location}")
 
     def pause_song(self):
         if self.is_song_playing:
             self.music_player.pause()
             self.is_song_playing = False
+            self.now_playing_label.setText(f"Paused: {self.song_location}")
             print(f"Pausing: {self.song_location}")
 
     def select_song(self):
@@ -111,6 +118,8 @@ class MusicWindow(QMainWindow):
         if selected_item:
             self.song_location = os.path.join("./music", selected_item.text())
             print(self.song_location)
+            self.song_selected_label.setText(
+                f"Selected song: {self.song_location}")
             return self.song_location
 
     def media_status_changed(self, status):
