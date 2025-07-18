@@ -1,5 +1,10 @@
 # Pomodoro
 
+## Pre-requisites
+- Python 3.x
+- pip for installing packages
+
+## Running the project
 1. Download source files or clone repo
 2. Run ```pip install -r requirements.txt```
 3. Run ```python main.py```
