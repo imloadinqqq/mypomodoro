@@ -19,6 +19,9 @@ c.execute("""
 """)
 conn.commit()
 
+print("Working directory:", os.getcwd())
+print("Using database at:", os.path.abspath("history.db"))
+
 
 def save_to_db(task, date, time, duration, reflection):
     c.execute("INSERT INTO history (task, date, time, duration, reflection) VALUES (?, ?, ?, ?, ?)",
@@ -45,19 +48,47 @@ def dump_history(self, output_file):
 def restore_from_backup(self, file):
     file_path = os.path.abspath(file)
     if not os.path.exists(file_path):
-        raise FileExistsError(f"Could not find history backup: {file_path}")
+        QMessageBox.critical(self, "File Not Found",
+                             f"Could not find backup file at: {file_path}")
         return False
 
     try:
         with open(file, 'r') as f:
             script = f.read()
+
+        if "CREATE TABLE history" not in script:
+            QMessageBox.critical(
+                self, "Invalid Backup", "The backup file does not contain the history table schema.")
+            return False
+
         c.execute("DROP TABLE IF EXISTS history")
         conn.executescript(script)
         conn.commit()
-        QMessageBox.information(self, "Restore Successful",
-                                "History was restored from backup.")
+
+        QMessageBox.information(
+            self, "Restore Successful", "History was restored from backup.")
         logging.info("History restored from SQL dump.")
         return True
+
     except Exception as e:
-        print(f"Error: {e}")
+        logging.error(f"Restore failed: {e}")
+        QMessageBox.critical(self, "Restore Failed", f"Error: {e}")
         return False
+
+
+def dump_history(self, output_file):
+    reply = QMessageBox.question(
+        self,
+        "Confirm Dump",
+        "Do you want to dump the database history?",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+    )
+
+    if reply == QMessageBox.StandardButton.Yes:
+        with open(output_file, 'w') as f:
+            for line in conn.iterdump():
+                f.write(f"{line}\n")
+
+        QMessageBox.information(
+            self, "Success", "Database successfully saved!")
+        logging.info("History dump written to %s", output_file)
