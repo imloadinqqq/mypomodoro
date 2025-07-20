@@ -241,6 +241,8 @@ class MainWindow(QMainWindow):
         WINDOW_HEIGHT = 300
         super().__init__()
 
+        self.is_break = False
+
         self.music_window = None
         self.history_window = None
 
@@ -327,12 +329,14 @@ class MainWindow(QMainWindow):
     # start QTimer responsible for updating display
 
     def start_timer(self):
-        if self.is_task():
-            if not self.timer.isActive():
-                self.task.setDisabled(True)
-                self.start_time = datetime.now()
-                self.timer.start()
-                self.hide_elements()
+        if not self.is_break and not self.is_task():
+            return
+
+        if not self.timer.isActive():
+            self.task.setDisabled(True)
+            self.start_time = datetime.now()
+            self.timer.start()
+            self.hide_elements()
 
     def pause_timer(self):
         if self.timer.isActive():
@@ -369,23 +373,24 @@ class MainWindow(QMainWindow):
     def update_display(self):
         if self.time == QTime(0, 0, 0):
             self.timer.stop()
-            self.timer_display.setText("Time's up!")
             QTimer.singleShot(1000, self.play_sound)
+            self.timer_display.setText("Time's up!")
             logging.info("Task complete")
 
             end_time = datetime.now()
             duration = end_time - \
                 self.start_time if self.start_time else timedelta(minutes=25)
 
-            task_name = self.task.text() or "Unnamed Task"
-            relfection = self.reflection_prompt()
-            save_to_db(
-                task_name,
-                end_time.strftime('%Y-%m-%d'),
-                end_time.strftime('%H:%M:%S'),
-                str(duration),
-                relfection
-            )
+            if not self.is_break:
+                task_name = self.task.text() or "Unnamed Task"
+                relfection = self.reflection_prompt()
+                save_to_db(
+                    task_name,
+                    end_time.strftime('%Y-%m-%d'),
+                    end_time.strftime('%H:%M:%S'),
+                    str(duration),
+                    relfection
+                )
 
             self.start_button.hide()
             self.pause_button.hide()
@@ -398,6 +403,7 @@ class MainWindow(QMainWindow):
 
     # start 5 min break
     def start_break(self):
+        self.is_break = True
         self.time = QTime(0, 5, 0)
         self.start_timer()
         self.update_display()
@@ -406,6 +412,7 @@ class MainWindow(QMainWindow):
         self.skip_break_button.show()
 
     def skip_break(self):
+        self.is_break = False
         if self.timer.isActive():
             self.timer.stop()
         logging.info("Break skipped")
